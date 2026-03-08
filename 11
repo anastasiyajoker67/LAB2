@@ -1,0 +1,151 @@
+#include <iostream>
+#include <string>
+#include <cstring>
+#include <stdarg.h>
+#include <vector>
+#include <clocale>
+#include <windows.h> 
+
+using namespace std;
+
+struct Address {
+    int index;
+    string country;
+    string city;
+    string street;
+    int house;
+    int apartment;
+};
+
+struct Abiturient {
+    string lastName;
+    string firstName;
+    string secondName;
+    string gender;
+    int birthYear, birthMonth, birthDay;
+    Address addr;
+    int grades[3]; 
+    double passScore; 
+};
+
+
+Abiturient* db = nullptr;
+int nSize = 0;
+const string ADMIN_PASS = "admin"; 
+
+
+Abiturient InitAbiturient() {
+    Abiturient a;
+    cout << "Familiya: "; cin >> a.lastName;
+    cout << "Imya: "; cin >> a.firstName;
+    cout << "Pol (M/W): "; cin >> a.gender;
+    cout << "Data rozhdeniya (Year Month Day): ";
+    cin >> a.birthYear >> a.birthMonth >> a.birthDay;
+    cout << "Gorod: "; cin >> a.addr.city;
+    cout << "Ocenki (3 chisla): ";
+    int sum = 0;
+    for (int i = 0; i < 3; i++) {
+        cin >> a.grades[i];
+        sum += a.grades[i];
+    }
+  
+    a.passScore = sum / 3.0;
+    return a;
+}
+
+void CreateDB() {
+    if (db) delete[] db;
+    cout << "Vvedite kolichestvo abiturientov: ";
+    cin >> nSize;
+    db = new Abiturient[nSize];
+    for (int i = 0; i < nSize; i++) {
+        cout << "\nInput data for #" << i + 1 << endl;
+        db[i] = InitAbiturient();
+    }
+}
+
+void ShowDB() {
+    if (!db) { cout << "Baza pusta!\n"; system("pause"); return; }
+    cout << "\n--- SPISOK ---\n";
+    for (int i = 0; i < nSize; i++) {
+        cout << i + 1 << ". " << db[i].lastName << " " << db[i].firstName
+            << " | Sredniy ball: " << db[i].passScore << endl;
+    }
+    system("pause");
+}
+
+void AddToDB(int count = 1) {
+    Abiturient* temp = new Abiturient[nSize + count];
+    for (int i = 0; i < nSize; i++) temp[i] = db[i];
+
+    for (int i = nSize; i < nSize + count; i++) {
+        cout << "\nAdding new record...\n";
+        temp[i] = InitAbiturient();
+    }
+    delete[] db;
+    db = temp;
+    nSize += count;
+}
+
+void SearchDB() {
+    string key;
+    cout << "Vvedite Familiyu dlya poiska: "; cin >> key;
+    for (int i = 0; i < nSize; i++) {
+        if (db[i].lastName == key) {
+            cout << "Nayden: " << db[i].lastName << ", Sredniy ball: " << db[i].passScore << endl;
+        }
+    }
+    system("pause");
+}
+
+void SortDB() {
+    for (int i = 0; i < nSize - 1; i++)
+        for (int j = 0; j < nSize - i - 1; j++)
+            if (db[j].lastName > db[j + 1].lastName) swap(db[j], db[j + 1]);
+    cout << "Sorted!\n";
+    system("pause");
+}
+
+void PrintNames(int count, ...) {
+    va_list args;
+    va_start(args, count);
+    cout << "Names list: ";
+    for (int i = 0; i < count; i++) {
+        cout << va_arg(args, char*) << " ";
+    }
+    va_end(args);
+    cout << endl;
+    system("pause");
+}
+
+
+void (*menuFuncs[])() = { CreateDB, ShowDB, []() { AddToDB(); }, SearchDB, SortDB, []() { PrintNames(2, "Ivan", "Oleg"); } };
+
+int main(int argc, char* argv[]) {
+    system("chcp 65001 > nul");
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    setlocale(LC_ALL, "ru_RU.UTF-8");
+
+   
+    if (argc < 2) {
+        cout << "Usage: " << argv[0] << " <password>" << endl;
+        return 1;
+    }
+    if (string(argv[1]) != ADMIN_PASS) {
+        cout << "Access Denied!" << endl;
+        return 1;
+    }
+
+    int choice;
+    while (true) {
+        system("cls");
+        cout << "1. Create DB\n2. Show DB\n3. Add Record\n4. Search\n5. Sort\n6. VarArgs Demo\n7. Exit\nChoice: ";
+        cin >> choice;
+        if (choice == 7) break;
+        if (choice >= 1 && choice <= 6) menuFuncs[choice - 1]();
+    }
+
+    delete[] db;
+    return 0;
+}
