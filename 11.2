@@ -1,0 +1,187 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stdarg.h> // Для работы с переменным числом параметров
+#include <algorithm>
+
+using namespace std;
+
+// Описание структур
+struct Address {
+    int zip;
+    string country;
+    string city;
+    string street;
+    int house;
+};
+
+struct Abiturient {
+    string lastName;
+    string firstName;
+    string secondName;
+    string sex;
+    int birthYear;
+    Address addr;
+    int grades[3];  // Оценки по 3 экзаменам
+    double avgGrade; // Проходной балл (рассчитаем как среднее)
+};
+
+// Глобальные переменные для управления базой
+Abiturient* database = nullptr;
+int dbSize = 0;
+const string PASSWORD = "admin"; // Пароль для входа
+
+// --- Прототипы функций ---
+Abiturient InitPerson();
+Abiturient* InitArray(int Dimension);
+void DisplayPerson(Abiturient p);
+void DisplayArray();
+void AddEntries(int count = 1);
+void SearchByLastName();
+void SortByFirstName();
+void VarArgsMethod1(int n, ...);
+void VarArgsMethod2(initializer_list<string> list);
+int menu();
+
+// Заглушки (согласно заданию)
+extern "C" {
+    void _setargv() { return; }
+    void _seteuv() { return; }
+}
+
+// Массив указателей на функции для меню
+void (*actions[])() = { 
+    [](){ database = InitArray(0); }, // Инициализация (формирование)
+    DisplayArray, 
+    [](){ AddEntries(); },            // Добавление (параметр по умолчанию)
+    SearchByLastName, 
+    SortByFirstName,
+    [](){ VarArgsMethod1(3, "Debug", "Log", "Info"); } // Демо переменного числа параметров
+};
+
+// --- Реализация функций ---
+
+Abiturient InitPerson() {
+    Abiturient p;
+    cout << "Фамилия: "; cin >> p.lastName;
+    cout << "Имя: "; cin >> p.firstName;
+    cout << "Пол: "; cin >> p.sex;
+    cout << "Год рождения: "; cin >> p.birthYear;
+    cout << "Город проживания: "; cin >> p.addr.city;
+    cout << "Введите 3 оценки через пробел: ";
+    int sum = 0;
+    for(int i = 0; i < 3; i++) {
+        cin >> p.grades[i];
+        sum += p.grades[i];
+    }
+    // Пример вычисления одного поля на основе других
+    p.avgGrade = sum / 3.0; 
+    return p;
+}
+
+Abiturient* InitArray(int Dimension) {
+    if (database) delete[] database;
+    cout << "Введите количество абитуриентов для ввода: ";
+    cin >> Dimension;
+    dbSize = Dimension;
+    Abiturient* newArr = new Abiturient[dbSize];
+    for (int i = 0; i < dbSize; i++) {
+        cout << "\nАбитуриент #" << i + 1 << endl;
+        newArr[i] = InitPerson();
+    }
+    return newArr;
+}
+
+void DisplayPerson(Abiturient p) {
+    cout << p.lastName << " " << p.firstName << " | Балл: " << p.avgGrade << " | Город: " << p.addr.city << endl;
+}
+
+void DisplayArray() {
+    if (dbSize == 0) { cout << "База пуста!" << endl; return; }
+    for (int i = 0; i < dbSize; i++) {
+        DisplayPerson(database[i]);
+    }
+}
+
+void AddEntries(int count) {
+    int newSize = dbSize + count;
+    Abiturient* newArr = new Abiturient[newSize];
+    for (int i = 0; i < dbSize; i++) newArr[i] = database[i];
+    
+    for (int i = dbSize; i < newSize; i++) {
+        cout << "\nДобавление нового абитуриента:" << endl;
+        newArr[i] = InitPerson();
+    }
+    
+    delete[] database;
+    database = newArr;
+    dbSize = newSize;
+    cout << "Успешно добавлено " << count << " записей." << endl;
+}
+
+void SearchByLastName() {
+    string target;
+    cout << "Введите фамилию для поиска: "; cin >> target;
+    for (int i = 0; i < dbSize; i++) {
+        if (database[i].lastName == target) DisplayPerson(database[i]);
+    }
+}
+
+void SortByFirstName() {
+    for (int i = 0; i < dbSize - 1; i++) {
+        for (int j = 0; j < dbSize - i - 1; j++) {
+            if (database[j].firstName > database[j+1].firstName) {
+                swap(database[j], database[j+1]);
+            }
+        }
+    }
+    cout << "Сортировка завершена." << endl;
+}
+
+// Способ 1: va_list (C-style)
+void VarArgsMethod1(int n, ...) {
+    va_list ptr;
+    va_start(ptr, n);
+    cout << "Переменные параметры (C-style): ";
+    for (int i = 0; i < n; i++) {
+        cout << va_arg(ptr, const char*) << " ";
+    }
+    va_end(ptr);
+    cout << endl;
+}
+
+// Главная функция
+int main(int argc, char *argv[]) {
+    // 1. Проверка пароля командной строки
+    if (argc != 2) {
+        cout << "Ошибка! Запуск: " << argv[0] << " <пароль>" << endl;
+        return 1;
+    }
+
+    if (string(argv[1]) != PASSWORD) {
+        cout << "Неверный пароль! Доступ запрещен." << endl;
+        return 1;
+    }
+
+    cout << "Привет, " << argv[1] << "! Доступ разрешен." << endl;
+
+    // 2. Работа меню
+    while (true) {
+        int m = menu();
+        if (m == -1) break;
+        actions[m]();
+    }
+
+    if (database) delete[] database;
+    return 0;
+}
+
+int menu() {
+    int choice;
+    cout << "\n--- МЕНЮ ---" << endl;
+    cout << "1. Сформировать базу\n2. Просмотр\n3. Добавить (1 запись)\n4. Поиск по фамилии\n5. Сортировка по имени\n6. Тест VarArgs\n7. Выход" << endl;
+    cout << "Ваш выбор: ";
+    cin >> choice;
+    if (choice == 7) return -1;
+    return choice - 1;
+}
