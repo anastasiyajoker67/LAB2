@@ -1,0 +1,26 @@
+#include <iostream>
+#include <string>
+#include <limits>
+
+using namespace std;
+
+int main() {
+    string input;
+
+   
+    cout << "Введите рандомные буквы, чтобы сгенерировать из них слово: ";
+
+
+    getline(cin, input);
+
+   
+    cout << "Анализ последовательности символов..." << endl;
+    cout << "Сборка слова..." << endl;
+    cout << "Результат готов!" << endl;
+    cout << "------------------------" << endl;
+
+   
+    cout << "Ты гей" << endl;
+
+    return 0;
+}
